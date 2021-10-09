@@ -11,7 +11,7 @@ def process_dataset():
     :return: None
     """
     output_size = [112, 112, 80]
-    image_list = glob("../data/2018_LA_Seg_Challenge/*/*/lgemri.nrrd")
+    image_list = glob("../data/2018_LA_Seg_Challenge/*/lgemri.nrrd")
     for file in tqdm.tqdm(image_list):
         image, img_header = nrrd.read(file)
         seg, seg_header = nrrd.read(file.replace("lgemri.nrrd", "laendo.nrrd"))
