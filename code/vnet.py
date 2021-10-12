@@ -1,37 +1,26 @@
 import os
 import tensorflow as tf
-from tensorflow.keras.initializers import HeNormal
 
 os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
 
 class ConvBlock(tf.Module):
-    def __init__(self,
-                 n_stages,
-                 n_channels_out,
-                 input_shape,
-                 kernel_size=3,
-                 strides=1,
-                 kernel_initializer=HeNormal):
+    def __init__(self, n_stages, n_channels_out, input_shape, kernel_size=3, strides=1):
         super(ConvBlock, self).__init__()
 
-        ops = []
+        layers = []
         for i in range(n_stages):
             if i == 0:
-                ops.append(tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides,
-                                                  padding="same", input_shape=input_shape,
-                                                  kernel_initializer=kernel_initializer))
+                layers.append(tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides,
+                                                     padding="same", input_shape=input_shape))
             else:
-                ops.append(tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides, padding="same",
-                                                  kernel_initializer=kernel_initializer))
-
-            ops.append(tf.keras.layers.BatchNormalization())
-
+                layers.append(tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides, padding="same"))
+            layers.append(tf.keras.layers.BatchNormalization())
             # residual function
             if i != n_stages - 1:
-                ops.append(tf.keras.layers.PReLU())
+                layers.append(tf.keras.layers.PReLU())
 
-        self.conv = tf.keras.Sequential(ops)
+        self.conv = tf.keras.Sequential(layers)
         self.relu = tf.keras.layers.PReLU()
 
     def __call__(self, x):
