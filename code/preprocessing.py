@@ -14,11 +14,11 @@ def process_dataset():
     image_list = glob("../data/2018_LA_Seg_Challenge/*/lgemri.nrrd")
     for file in tqdm.tqdm(image_list):
         image, img_header = nrrd.read(file)
-        seg, seg_header = nrrd.read(file.replace("lgemri.nrrd", "laendo.nrrd"))
-        seg = (seg == 255).astype(np.uint8)
-        w, h, d = seg.shape
+        label, seg_header = nrrd.read(file.replace("lgemri.nrrd", "laendo.nrrd"))
+        label = (label == 255).astype(np.uint8)
+        w, h, d = label.shape
 
-        tempL = np.nonzero(seg)
+        tempL = np.nonzero(label)
         minx, maxx = np.min(tempL[0]), np.max(tempL[0])
         miny, maxy = np.min(tempL[1]), np.max(tempL[1])
         minz, maxz = np.min(tempL[2]), np.max(tempL[2])
@@ -36,10 +36,10 @@ def process_dataset():
         image = (image - np.mean(image)) / np.std(image)
         image = image.astype(np.float32)
         image = image[minx:maxx, miny:maxy]
-        seg = seg[minx:maxx, miny:maxy]
+        label = label[minx:maxx, miny:maxy]
         f = h5py.File(file.replace('lgemri.nrrd', 'mri_norm2.h5'), 'w')
         f.create_dataset('image', data=image, compression="gzip")
-        f.create_dataset('seg', data=seg, compression="gzip")
+        f.create_dataset('label', data=label, compression="gzip")
         f.close()
 
 
