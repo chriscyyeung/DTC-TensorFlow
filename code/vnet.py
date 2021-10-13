@@ -11,25 +11,25 @@ class Block:
 
     def get_conv_shape(self):
         new_shape = (
-            int((self.inputs_shape[0] - self.kernel_size + 2 * self.padding) / self.strides + 1),
-            int((self.inputs_shape[1] - self.kernel_size + 2 * self.padding) / self.strides + 1),
-            int((self.inputs_shape[2] - self.kernel_size + 2 * self.padding) / self.strides + 1),
+            int((self.inputs_shape[0] - self.kernel_size + 2 * self.padding) / self.strides[0] + 1),
+            int((self.inputs_shape[1] - self.kernel_size + 2 * self.padding) / self.strides[1] + 1),
+            int((self.inputs_shape[2] - self.kernel_size + 2 * self.padding) / self.strides[2] + 1),
             self.n_channels_out
         )
         return new_shape
 
     def get_deconv_shape(self):
         new_shape = (
-            self.strides * (self.inputs_shape[0] - 1) + self.kernel_size - 2 * self.padding,
-            self.strides * (self.inputs_shape[1] - 1) + self.kernel_size - 2 * self.padding,
-            self.strides * (self.inputs_shape[2] - 1) + self.kernel_size - 2 * self.padding,
+            self.strides[0] * (self.inputs_shape[0] - 1) + self.kernel_size - 2 * self.padding,
+            self.strides[1] * (self.inputs_shape[1] - 1) + self.kernel_size - 2 * self.padding,
+            self.strides[2] * (self.inputs_shape[2] - 1) + self.kernel_size - 2 * self.padding,
             self.n_channels_out
         )
         return new_shape
 
 
 class ConvBlock(tf.keras.layers.Layer, Block):
-    def __init__(self, n_stages, inputs_shape, n_channels_out, kernel_size=3, strides=1, padding="same"):
+    def __init__(self, n_stages, inputs_shape, n_channels_out, kernel_size=3, strides=(1, 1, 1), padding="same"):
         tf.keras.layers.Layer.__init__(self)
         Block.__init__(self, inputs_shape, n_channels_out, kernel_size, strides, padding)
 
@@ -59,7 +59,7 @@ class ConvBlock(tf.keras.layers.Layer, Block):
 
 
 class DownsamplingConvBlock(tf.keras.layers.Layer, Block):
-    def __init__(self, inputs_shape, n_channels_out, kernel_size=2, strides=2, padding="valid"):
+    def __init__(self, inputs_shape, n_channels_out, kernel_size=2, strides=(2, 2, 2), padding="valid"):
         tf.keras.layers.Layer.__init__(self)
         Block.__init__(self, inputs_shape, n_channels_out, kernel_size, strides, padding)
 
@@ -79,7 +79,7 @@ class DownsamplingConvBlock(tf.keras.layers.Layer, Block):
 
 
 class UpsamplingDeconvBlock(tf.keras.layers.Layer, Block):
-    def __init__(self, inputs_shape, n_channels_out, kernel_size=2, strides=2, padding="valid"):
+    def __init__(self, inputs_shape, n_channels_out, kernel_size=2, strides=(2, 2, 2), padding="valid"):
         tf.keras.layers.Layer.__init__(self)
         Block.__init__(self, inputs_shape, n_channels_out, kernel_size, strides, padding)
 
@@ -99,7 +99,7 @@ class UpsamplingDeconvBlock(tf.keras.layers.Layer, Block):
 
 
 class OneByOneConvBlock(tf.keras.layers.Layer, Block):
-    def __init__(self, inputs_shape, n_channels_out, kernel_size=1, strides=1, padding="valid"):
+    def __init__(self, inputs_shape, n_channels_out, kernel_size=1, strides=(1, 1, 1), padding="valid"):
         tf.keras.layers.Layer.__init__(self)
         Block.__init__(self, inputs_shape, n_channels_out, kernel_size, strides, padding)
 
