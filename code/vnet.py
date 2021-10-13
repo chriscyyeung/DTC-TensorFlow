@@ -4,6 +4,7 @@ import tensorflow as tf
 os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
 
+# TODO: maybe don't need this, just need to give input_shape for first layer
 class Block:
     def __init__(self, inputs_shape, n_channels_out, kernel_size, strides, padding):
         self.inputs_shape = inputs_shape
@@ -19,12 +20,16 @@ class Block:
             int((self.inputs_shape[2] - self.kernel_size + 2 * self.padding) / self.strides + 1),
             self.n_channels_out
         )
-        print(self.inputs_shape, new_shape)  # TESTING
         return new_shape
 
-    # TODO: change calculation for upsampling
     def get_deconv_shape(self):
-        pass
+        new_shape = (
+            self.strides * (self.inputs_shape[0] - 1) + self.kernel_size - 2 * self.padding,
+            self.strides * (self.inputs_shape[1] - 1) + self.kernel_size - 2 * self.padding,
+            self.strides * (self.inputs_shape[2] - 1) + self.kernel_size - 2 * self.padding,
+            self.n_channels_out
+        )
+        return new_shape
 
 
 class ConvBlock(tf.keras.layers.Layer, Block):
@@ -137,26 +142,26 @@ class VNet(tf.keras.Model):
 
         # bottom
         self.block_five = ConvBlock(3, self.block_four_dw.get_conv_shape(), n_filters * 16)
-        self.block_five_up = UpsamplingDeconvBlock(self.block_five.get_deconv_shape(), n_filters * 8)
+        self.block_five_up = UpsamplingDeconvBlock(self.block_five.get_conv_shape(), n_filters * 8)
 
         # right side
-        self.block_six = ConvBlock(3, self.block_five_up.get_conv_shape(), n_filters * 8)
-        self.block_six_up = UpsamplingDeconvBlock(self.block_six.get_deconv_shape(), n_filters * 4)
+        self.block_six = ConvBlock(3, self.block_five_up.get_deconv_shape(), n_filters * 8)
+        self.block_six_up = UpsamplingDeconvBlock(self.block_six.get_conv_shape(), n_filters * 4)
 
-        self.block_seven = ConvBlock(3, self.block_six_up.get_conv_shape(), n_filters * 4)
-        self.block_seven_up = UpsamplingDeconvBlock(self.block_seven.get_deconv_shape(), n_filters * 2)
+        self.block_seven = ConvBlock(3, self.block_six_up.get_deconv_shape(), n_filters * 4)
+        self.block_seven_up = UpsamplingDeconvBlock(self.block_seven.get_conv_shape(), n_filters * 2)
 
-        self.block_eight = ConvBlock(2, self.block_seven_up.get_conv_shape(), n_filters * 2)
-        self.block_eight_up = UpsamplingDeconvBlock(self.block_eight.get_deconv_shape(), n_filters)
+        self.block_eight = ConvBlock(2, self.block_seven_up.get_deconv_shape(), n_filters * 2)
+        self.block_eight_up = UpsamplingDeconvBlock(self.block_eight.get_conv_shape(), n_filters)
 
-        self.block_nine = ConvBlock(1, self.block_eight_up.get_conv_shape(), n_filters)
+        self.block_nine = ConvBlock(1, self.block_eight_up.get_deconv_shape(), n_filters)
 
         # 1x1x1 convolution
-        self.out_conv = OneByOneConvBlock(self.block_nine.get_output_shape(), n_classes)
-        self.out_conv2 = OneByOneConvBlock(self.block_nine.get_output_shape(), n_classes)
+        self.out_conv = OneByOneConvBlock(self.block_nine.get_conv_shape(), n_classes)
+        self.out_conv2 = OneByOneConvBlock(self.block_nine.get_conv_shape(), n_classes)
 
         # regression head
-        self.tanh = tf.keras.layers.Activation("tanh", input_shape=self.out_conv.get_output_shape())
+        self.tanh = tf.keras.layers.Activation("tanh", input_shape=self.out_conv.get_conv_shape())
 
         self.dropout = tf.keras.layers.Dropout(self.DROPOUT_RATE)
 
@@ -222,4 +227,5 @@ class VNet(tf.keras.Model):
 
 if __name__ == "__main__":
     model = VNet((112, 112, 80, 1))
-    print(model.variables)
+    model.build(input_shape=(3, 112, 112, 80, 1))
+    print(model.summary())
