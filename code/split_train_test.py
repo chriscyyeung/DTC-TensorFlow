@@ -3,6 +3,9 @@ import glob
 import random
 
 
+random.seed(2021)
+
+
 def split_train_test():
     """Randomly samples 80% of the data files into the training set and 20%
     into the test set. Writes the results into separate list files.
