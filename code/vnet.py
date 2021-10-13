@@ -1,10 +1,7 @@
 import os
 import tensorflow as tf
 
-os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
-
-# TODO: maybe don't need this, just need to give input_shape for first layer
 class Block:
     def __init__(self, inputs_shape, n_channels_out, kernel_size, strides, padding):
         self.inputs_shape = inputs_shape
