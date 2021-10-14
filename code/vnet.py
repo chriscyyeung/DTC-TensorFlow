@@ -128,7 +128,6 @@ class OneByOneConvBlock(tf.keras.layers.Layer, Block):
 class VNet(tf.keras.Model):
     """Implementation of the VNet backbone for medical image segmentation as
     described by Luo et al. (https://ojs.aaai.org/index.php/AAAI/article/view/17066)
-
     """
 
     DROPOUT_RATE = 0.5
