@@ -10,6 +10,11 @@ class Block:
         self.padding = 1 if padding == "same" else 0
 
     def get_conv_shape(self):
+        """Calculates the output shape following convolution with the
+        current block.
+
+        :return: a tuple of the output shape following convolution
+        """
         new_shape = (
             int((self.inputs_shape[0] - self.kernel_size + 2 * self.padding) / self.strides[0] + 1),
             int((self.inputs_shape[1] - self.kernel_size + 2 * self.padding) / self.strides[1] + 1),
@@ -19,6 +24,11 @@ class Block:
         return new_shape
 
     def get_deconv_shape(self):
+        """Calculates the output shape following deconvolution with the
+        current block.
+
+        :return: a tuple of the output shape following deconvolution
+        """
         new_shape = (
             self.strides[0] * (self.inputs_shape[0] - 1) + self.kernel_size - 2 * self.padding,
             self.strides[1] * (self.inputs_shape[1] - 1) + self.kernel_size - 2 * self.padding,
@@ -116,6 +126,10 @@ class OneByOneConvBlock(tf.keras.layers.Layer, Block):
 
 
 class VNet(tf.keras.Model):
+    """Implementation of the VNet backbone for medical image segmentation as
+    described by Luo et al. (https://ojs.aaai.org/index.php/AAAI/article/view/17066)
+
+    """
 
     DROPOUT_RATE = 0.5
 
