@@ -1,9 +1,14 @@
 import os
 import h5py
+import numpy as np
 import tensorflow as tf
 
 
 class LAHeart:
+    """Loads the preprocessed left atrial segmentation challenge images and
+    labels for input into the network. Applies on-the-fly data augmentation
+    methods during the training phase.
+    """
     def __init__(self, data_dir, transforms=None, train=False):
         self.data_dir = data_dir
         self.transforms = transforms
@@ -20,6 +25,11 @@ class LAHeart:
         self.dataset = None
 
     def get_dataset(self):
+        """Returns a TensorFlow Dataset object containing the training
+        or testing images and labels.
+
+        :return: a tf.data.Dataset of the training/testing data
+        """
         dataset = tf.data.Dataset.from_tensor_slices(self.image_dir_list)
         dataset = dataset.map(lambda case: tuple(tf.py_function(
             self.input_parser, [case], [tf.float32, tf.uint8])),
@@ -28,6 +38,13 @@ class LAHeart:
         return self.dataset
 
     def input_parser(self, case):
+        """Parses the images and labels from their directory filenames to
+        their TensorFlow tensors.
+
+        :param case: a string representing the name of the directory
+                     containing the mri_norm.h5 file
+        :return: a (image, label) tuple of the image data in case
+        """
         case = case.decode("utf-8")
         image_path = os.path.join(self.data_dir, case)
 
@@ -45,9 +62,85 @@ class LAHeart:
         return sample["image"], sample["label"]
 
 
+class RandomCrop:
+    """Randomly crops the image to the specified output_size. The output
+    size can be a tuple or an integer (for a cubic crop).
+    """
+    def __init__(self, output_size, seed):
+        self.name = "RandomCrop"
+        self.rng = tf.random.Generator.from_seed(seed)
+
+        assert isinstance(output_size, (int, tuple, list))
+        if isinstance(output_size, int):
+            self.output_size = (output_size, output_size, output_size)
+        else:
+            assert len(output_size) == 3
+            self.output_size = output_size
+
+    def __call__(self, sample):
+        image, label = sample["image"], sample["label"]
+
+        seed = self.rng.uniform_full_int([2], dtype=tf.int32)
+        image = tf.image.stateless_random_crop(image, self.output_size, seed)
+        label = tf.image.stateless_random_crop(label, self.output_size, seed)
+
+        return {"image": image, "label": label}
+
+
+class RandomRotation:
+    """Randomly rotates the image 0, 90, 180, or 270 degrees."""
+    def __init__(self):
+        self.name = "RandomRotation"
+
+    def __call__(self, sample):
+        image, label = sample["image"], sample["label"]
+
+        num_flips = np.random.randint(4)
+        image = tf.image.rot90(image, num_flips)
+        label = tf.image.rot90(label, num_flips)
+
+        return {"image": image, "label": label}
+
+
+class RandomFlip:
+    """Randomly flips the image in a sample along its x or y axis."""
+    def __init__(self, seed):
+        self.name = "RandomFlip"
+        self.rng = tf.random.Generator.from_seed(seed)
+
+    def __call__(self, sample):
+        image, label = sample["image"], sample["label"]
+
+        seed = self.rng.uniform_full_int([2], dtype=tf.int32)
+        axis = np.random.randint(2)
+        if axis:  # flip along y axis
+            image = tf.image.stateless_random_flip_left_right(image, seed)
+            label = tf.image.stateless_random_flip_left_right(label, seed)
+        else:  # flip along x axis
+            image = tf.image.stateless_random_flip_up_down(image, seed)
+            label = tf.image.stateless_random_flip_up_down(label, seed)
+
+        return {"image": image, "label": label}
+
+
+# TODO: not sure how the image dimensions will fit in with network
+class ToTensor:
+    """Converts the 3D image arrays in a sample to Tensors."""
+    def __init__(self):
+        self.name = "ToTensor"
+
+    def __call__(self, sample):
+        image, label = sample["image"], sample["label"]
+        image = image[:, :, :, np.newaxis]
+        label = label[:, :, :, np.newaxis]
+
+        return {"image": image, "label": label}
+
+
 if __name__ == '__main__':
     import glob
     data_dir = glob.glob("../data/*")[0]
     dataset = LAHeart(data_dir, train=True)
     data = dataset.get_dataset()
     print(len(data))
+    print(data.element_spec)
