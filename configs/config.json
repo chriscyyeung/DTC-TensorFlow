@@ -1,0 +1,13 @@
+{
+    "ProjectName": "DTC TensorFlow",
+    "TrainingSettings": {
+        "DataDirectory": "./data",
+        "Epochs": 6000,
+        "InitialLearningRate": 0.01,
+        "LearningRateDecay": 0.1,
+        "LearningRateDecayInterval": 2500,
+        "BatchSize": 4,
+        "k": 1500,
+        "DropoutRate": 0.5
+    }
+}
