@@ -130,9 +130,7 @@ class VNet(tf.keras.Model):
     described by Luo et al. (https://ojs.aaai.org/index.php/AAAI/article/view/17066)
     """
 
-    DROPOUT_RATE = 0.5
-
-    def __init__(self, inputs_shape, n_classes=1, n_filters=16, has_dropout=True):
+    def __init__(self, inputs_shape, n_classes=1, n_filters=16, has_dropout=True, dropout=0.5):
         super().__init__()
         self.has_dropout = has_dropout
 
@@ -172,7 +170,7 @@ class VNet(tf.keras.Model):
         # regression head
         self.tanh = tf.keras.layers.Activation("tanh", input_shape=self.out_conv.get_conv_shape())
 
-        self.dropout = tf.keras.layers.Dropout(self.DROPOUT_RATE)
+        self.dropout = tf.keras.layers.Dropout(dropout)
 
     def encoder(self, input_volume):
         x1 = self.block_one(input_volume)
