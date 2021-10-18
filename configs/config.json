@@ -1,13 +1,14 @@
 {
     "ProjectName": "DTC TensorFlow",
     "TrainingSettings": {
-        "DataDirectory": "./data",
+        "DataDirectory": "data/2018_LA_Seg_Challenge",
         "Epochs": 6000,
         "InitialLearningRate": 0.01,
         "LearningRateDecay": 0.1,
         "LearningRateDecayInterval": 2500,
         "BatchSize": 4,
         "k": 1500,
-        "DropoutRate": 0.5
+        "DropoutRate": 0.5,
+        "Pipeline": "configs/pipeline.yaml"
     }
 }

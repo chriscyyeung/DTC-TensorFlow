@@ -1,0 +1,15 @@
+description: left atrial segmentation pipeline
+modality: MRI
+preprocess:
+  train:
+    - name: "RandomCrop"
+      variables:
+        output_size: [112, 112, 80]
+        seed: 2021
+    - name: "RandomRotation"
+    - name: "RandomFlip"
+      variables:
+        seed: 2021
+    - name: "ToTensor"
+
+  test:
