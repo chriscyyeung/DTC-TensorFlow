@@ -13,7 +13,7 @@ from vnet import VNet
 class Model:
     def __init__(self, config):
         self.config = config
-        self.model = None
+        self.network = None
         self.train_iterator = None
         self.test_iterator = None
 
@@ -22,6 +22,7 @@ class Model:
 
         self.data_dir = os.path.join(os.path.dirname(os.getcwd()), self.config["TrainingSettings"]["DataDirectory"])
 
+        self.patch_size = self.config["TrainingSettings"]["PatchSize"]
         self.epochs = self.config["TrainingSettings"]["Epochs"]
         self.initial_learning_rate = self.config["TrainingSettings"]["InitialLearningRate"]
         self.learning_rate_decay = self.config["TrainingSettings"]["LearningRateDecay"]
@@ -78,7 +79,8 @@ class Model:
             self.train_iterator = self.get_dataset_iterator(self.data_dir, transforms=train_transforms)
             self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
 
-            # TODO: instantiate network, losses, metrics, optimzers
+        # TODO: instantiate network, losses, metrics, optimizers
+        self.network = VNet(self.patch_size)
 
     def test(self):
         pass

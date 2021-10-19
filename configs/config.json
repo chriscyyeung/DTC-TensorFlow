@@ -2,6 +2,7 @@
     "ProjectName": "DTC TensorFlow",
     "TrainingSettings": {
         "DataDirectory": "data/2018_LA_Seg_Challenge",
+        "PatchSize": [112, 112, 80],
         "Epochs": 6000,
         "InitialLearningRate": 0.01,
         "LearningRateDecay": 0.1,
