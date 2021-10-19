@@ -5,6 +5,7 @@ import datetime
 import tensorflow as tf
 
 import LA_dataset
+from utils import *
 from losses import *
 from metrics import *
 from vnet import VNet
@@ -22,7 +23,7 @@ class Model:
 
         self.data_dir = os.path.join(os.path.dirname(os.getcwd()), self.config["TrainingSettings"]["DataDirectory"])
 
-        self.patch_size = self.config["TrainingSettings"]["PatchSize"]
+        self.input_shape = self.config["TrainingSettings"]["InputShape"]
         self.epochs = self.config["TrainingSettings"]["Epochs"]
         self.initial_learning_rate = self.config["TrainingSettings"]["InitialLearningRate"]
         self.learning_rate_decay = self.config["TrainingSettings"]["LearningRateDecay"]
@@ -80,7 +81,15 @@ class Model:
             self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
 
         # TODO: instantiate network, losses, metrics, optimizers
-        self.network = VNet(self.patch_size)
+        # instantiate VNet model
+        self.network = VNet(self.input_shape)
+
+        for elem in self.train_iterator:
+            label = elem[1][:, :, :, :, 0]
+            print(np.max(label), np.min(label))
+            label_lsf = compute_lsf_gt(label.numpy(), label.shape)
+            print(np.max(label_lsf), np.min(label_lsf))
+            break
 
     def test(self):
         pass

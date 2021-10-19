@@ -20,6 +20,7 @@ class LAHeart:
             image_list_file = data_dir + "/test.list"
         with open(image_list_file, "r") as f:
             self.image_dir_list = f.readlines()
+        self.image_dir_list = [image_dir.strip() for image_dir in self.image_dir_list]
 
         self.num_images = len(self.image_dir_list)
         self.dataset = None
@@ -41,11 +42,11 @@ class LAHeart:
         """Parses the images and labels from their directory filenames to
         their TensorFlow tensors.
 
-        :param case: a string representing the name of the directory
+        :param case: a Tensor representing the name of the directory
                      containing the mri_norm.h5 file
         :return: a (image, label) tuple of the image data in case
         """
-        case = case.decode("utf-8")
+        case = case.numpy().decode("utf-8")
         image_path = os.path.join(self.data_dir, case)
 
         # read image and label
@@ -144,3 +145,5 @@ if __name__ == '__main__':
     data = dataset.get_dataset()
     print(len(data))
     print(data.element_spec)
+    for elem in data:
+        print(elem)

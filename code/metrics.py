@@ -1,5 +1,5 @@
 import tensorflow as tf
-from medpy import metrics as mt
+from medpy import metric as mt
 
 def calculate_eval_metric(predicted, target_gt):
 
