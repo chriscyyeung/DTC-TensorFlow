@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-# Note: still a work in progress
+# To-do: Add comments
 
 
 def dice_loss(predicted, target_gt):
@@ -35,11 +35,10 @@ def dice_loss1(predicted, target_gt):
 
 def entropy_loss(p):
 
-    p = tf.convert_to_tensor(p)
     num_class = 2
     num_class = tf.convert_to_tensor(num_class)
 
-    ent = -np.mean(np.sum(p * np.log(p + 1e-6)) / np.log(num_class).cuda())
+    ent = -np.mean(np.sum(p * np.log(p + 1e-6)) / np.log(num_class)).cuda()
 
     return ent
 
@@ -49,11 +48,6 @@ def entropy_minimization(p):
     ent = -np.mean(np.sum(p * np.log(p + 1e-6)))
 
     return ent
-
-
-def entropy_map(p):
-
-    pass
 
 
 def softmax_mse_loss(input_logits, gt_logits, sigmoid=False):
