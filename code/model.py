@@ -62,9 +62,9 @@ class Model:
         label = next_element[1]
         with tf.GradientTape() as tape:
             pred_tanh, pred = self.network(next_element[0])
-            self.loss_fn.set_true(label[:, :, :, :, 0].numpy())
+            self.loss_fn.set_true(label[:, :, :, :, 0])
             self.loss_fn.set_epoch(epoch)
-            loss = self.loss_fn(pred[:, :, :, :, 0].numpy(), pred_tanh[:, :, :, :, 0].numpy())
+            loss = self.loss_fn(pred[:, :, :, :, 0], pred_tanh[:, :, :, :, 0])
         grads = tape.gradient(loss, self.network.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.network.trainable_weights))
         return loss

@@ -21,7 +21,7 @@ class DTCLoss(tf.keras.losses.Loss):
 
     @staticmethod
     def dice_loss(pred, true):
-        true = true.astype(np.float32)
+        true = tf.cast(true, tf.float32)
 
         smooth = 1e-5
         intersect = tf.math.reduce_sum(pred * true)
@@ -44,7 +44,7 @@ class DTCLoss(tf.keras.losses.Loss):
 
     def call(self, pred, pred_tanh):
         pred = tf.keras.activations.sigmoid(pred)
-        true_lsf = compute_lsf_gt(self.true, self.true.shape).astype(np.float32)
+        true_lsf = compute_lsf_gt(self.true.numpy(), self.true.numpy().shape)
 
         loss_lsf = self.mse(pred_tanh, true_lsf)
         loss_seg_dice = self.dice_loss(pred, self.true == 1)

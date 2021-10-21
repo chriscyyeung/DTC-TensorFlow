@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 from skimage import segmentation as skimage_seg
 from scipy.ndimage import distance_transform_edt as distance
 
@@ -11,8 +12,8 @@ def compute_lsf_gt(label, output_shape):
 
     :param label: the segmentation mask with shape (batch size, x, y, z)
     :param output_shape: a tuple or list of shape (batch size, x, y, z)
-    :return: the [-1, 1] normalized signed distance function of the
-             segmentation mask
+    :return: a Tensor of the [-1, 1] normalized signed distance function
+             of the segmentation mask
     """
     normalized_sdf = np.zeros(output_shape)
     for batch in range(output_shape[0]):
@@ -26,7 +27,7 @@ def compute_lsf_gt(label, output_shape):
                    (pos_dis - np.min(pos_dis)) / (np.max(pos_dis) - np.min(pos_dis)))
             sdf[boundary == 1] = 0
             normalized_sdf[batch] = sdf
-    return normalized_sdf
+    return tf.convert_to_tensor(normalized_sdf, tf.float32)
 
 
 def sigmoid_rampup(epoch, rampup_length):
