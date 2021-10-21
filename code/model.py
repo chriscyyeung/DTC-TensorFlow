@@ -6,7 +6,7 @@ import datetime
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-import LA_dataset
+import dataloader
 from losses import DTCLoss
 from vnet import VNet
 
@@ -24,12 +24,16 @@ class Model:
     def read_config(self):
         print(f"{datetime.datetime.now()}: Reading configuration file...")
 
-        self.data_dir = os.path.join(os.path.dirname(os.getcwd()), self.config["TrainingSettings"]["DataDirectory"])
+        # I/O settings
+        self.data_dir = os.path.join(os.path.dirname(os.getcwd()), self.config["DataDirectory"])
+        self.model_save_path = self.config["ModelSavePath"]
 
         # model settings
         self.input_shape = self.config["TrainingSettings"]["InputShape"]
         self.epochs = self.config["TrainingSettings"]["Epochs"]
         self.batch_size = self.config["TrainingSettings"]["BatchSize"]
+        self.labeled_bs = self.config["TrainingSettings"]["LabeledBatchSize"]
+        self.num_labeled = self.config["TrainingSettings"]["NumberLabeledImages"]
         self.dropout_rate = self.config["TrainingSettings"]["DropoutRate"]
         self.training_pipeline = self.config["TrainingSettings"]["Pipeline"]
 
@@ -49,13 +53,6 @@ class Model:
 
         print(f"{datetime.datetime.now()}: Reading configuration file complete.")
 
-    def get_dataset_iterator(self, data_dir, transforms, train=True):
-        Dataset = LA_dataset.LAHeart(data_dir=data_dir, transforms=transforms, train=train)
-        dataset = Dataset.get_dataset()
-        dataset = dataset.shuffle(len(dataset))
-        dataset = dataset.batch(self.batch_size)
-        return dataset
-
     @tf.function
     def train_step(self, next_element, epoch):
         label = next_element[1]
@@ -63,9 +60,9 @@ class Model:
             # get predictions
             pred_tanh, pred = self.network(next_element[0])
             # calculate loss
-            self.loss_fn.set_true(label[:, :, :, :, 0])
+            self.loss_fn.set_true(label[..., 0])
             self.loss_fn.set_epoch(epoch)
-            loss = self.loss_fn(pred[:, :, :, :, 0], pred_tanh[:, :, :, :, 0])
+            loss = self.loss_fn(pred[..., 0], pred_tanh[..., 0])
         grads = tape.gradient(loss, self.network.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.network.trainable_weights))
         return loss
@@ -76,7 +73,6 @@ class Model:
 
         # get images/labels and apply data augmentation
         with tf.device("/cpu:0"):
-            print(f"{datetime.datetime.now()}: Loading images and applying transformations...")
             # load pipeline from yaml
             with open(os.path.join(os.path.dirname(os.getcwd()), self.training_pipeline), "r") as f:
                 pipeline = yaml.load(f, Loader=yaml.FullLoader)
@@ -87,15 +83,20 @@ class Model:
             if pipeline["preprocess"]["train"] is not None:
                 for transform in pipeline["preprocess"]["train"]:
                     try:
-                        tfm_class = getattr(LA_dataset, transform["name"])(*[], **transform["variables"])
+                        tfm_class = getattr(dataloader, transform["name"])(*[], **transform["variables"])
                     except KeyError:
-                        tfm_class = getattr(LA_dataset, transform["name"])()
+                        tfm_class = getattr(dataloader, transform["name"])()
                     train_transforms.append(tfm_class)
 
-            # generate tensorflow datasets
-            self.train_iterator = self.get_dataset_iterator(self.data_dir, transforms=train_transforms)
-
-            print(f"{datetime.datetime.now()}: Image loading and transformation complete.")
+        # instantiate dataset iterator
+        self.train_iterator = dataloader.LAHeart(
+            data_dir=self.data_dir,
+            transforms=train_transforms,
+            train=True,
+            batch_size=self.batch_size,
+            labeled_bs=self.labeled_bs,
+            num_labeled=self.num_labeled
+        )
 
         # instantiate VNet model, loss function, optimizer
         self.network = VNet(self.input_shape)
@@ -104,7 +105,8 @@ class Model:
             self.beta,
             self.consistency,
             self.consistency_rampup,
-            self.consistency_interval
+            self.consistency_interval,
+            self.labeled_bs
         )
         self.optimizer = tfa.optimizers.SGDW(
             self.weight_decay,
@@ -113,10 +115,10 @@ class Model:
         )
 
         # train the network
-        max_epochs = self.epochs // len(self.train_iterator)  # number of passes through entire dataset
+        max_epochs = round(self.epochs / len(self.train_iterator))  # number of passes through dataset
         print(f"{datetime.datetime.now()}: Beginning training...")
         for epoch in tqdm.tqdm(range(max_epochs + 1)):
-            for sampled_batch in tqdm.tqdm(self.train_iterator):
+            for sampled_batch in tqdm.tqdm(self.train_iterator()):
                 print(f"{datetime.datetime.now()}: Starting epoch {self.current_iter + 1}...")
                 loss = self.train_step(sampled_batch, self.current_iter)
                 self.current_iter += 1
@@ -131,6 +133,17 @@ class Model:
                              (self.current_iter // self.lr_decay_interval)
                     self.optimizer.lr.assign(new_lr)
                     print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
+                break
+            break
+
+        # save model
+        complete_model_save_path = os.path.join(
+            os.path.dirname(os.getcwd()),
+            self.model_save_path,
+            f"DTC_{self.num_labeled}_labels"
+        )
+        self.network.save(complete_model_save_path)
+        print(f"{datetime.datetime.now()}: Trained model saved to {complete_model_save_path}.")
 
     # TODO
     def test(self):
@@ -146,12 +159,12 @@ class Model:
             if pipeline["preprocess"]["test"] is not None:
                 for transform in pipeline["preprocess"]["test"]:
                     try:
-                        tfm_class = getattr(LA_dataset, transform["name"])(*[], **transform["variables"])
+                        tfm_class = getattr(dataloader, transform["name"])(*[], **transform["variables"])
                     except KeyError:
-                        tfm_class = getattr(LA_dataset, transform["name"])()
+                        tfm_class = getattr(dataloader, transform["name"])()
                     test_transforms.append(tfm_class)
 
-            # generate tensorflow datasets
+            # TODO: need to modify since LAHeart class was changed
             self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
 
             print(f"{datetime.datetime.now()}: Image loading and transformation complete.")

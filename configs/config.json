@@ -1,10 +1,13 @@
 {
     "ProjectName": "DTC TensorFlow",
+    "DataDirectory": "data/2018_LA_Seg_Challenge",
+    "ModelSavePath": "models",
     "TrainingSettings": {
-        "DataDirectory": "data/2018_LA_Seg_Challenge",
         "InputShape": [112, 112, 80, 1],
         "Epochs": 6000,
         "BatchSize": 4,
+        "LabeledBatchSize": 2,
+        "NumberLabeledImages": 16,
         "DropoutRate": 0.5,
         "Pipeline": "configs/pipeline.yaml",
         "Optimizer": {

@@ -6,7 +6,7 @@ from util import compute_lsf_gt, sigmoid_rampup
 
 
 class DTCLoss(tf.keras.losses.Loss):
-    def __init__(self, k, beta, consistency, consistency_rampup, consistency_interval):
+    def __init__(self, k, beta, consistency, consistency_rampup, consistency_interval, labeled_bs):
         super().__init__()
 
         self.k = k
@@ -14,8 +14,8 @@ class DTCLoss(tf.keras.losses.Loss):
         self.consistency = consistency
         self.consistency_rampup = consistency_rampup
         self.consistency_interval = consistency_interval
+        self.labeled_bs = labeled_bs
         self.mse = tf.keras.losses.MeanSquaredError()
-        self.bce = tf.keras.losses.BinaryCrossentropy()
         self.epoch = 0
         self.true = None
 
@@ -43,17 +43,25 @@ class DTCLoss(tf.keras.losses.Loss):
         self.epoch = epoch
 
     def call(self, pred, pred_tanh):
-        pred = tf.keras.activations.sigmoid(pred)
-        true_lsf = tf.py_function(compute_lsf_gt, [self.true, self.true.shape], tf.float32)
+        pred = tf.keras.activations.sigmoid(pred)  # convert to logits
 
-        loss_lsf = self.mse(pred_tanh, true_lsf)
-        loss_seg_dice = self.dice_loss(pred, self.true == 1)
-        lsf_to_mask = tf.keras.activations.sigmoid(-self.k * pred_tanh)
+        # labeled predictions
+        pred_labeled = pred[:self.labeled_bs]
+        pred_tanh_labeled = pred_tanh[:self.labeled_bs]
+        true_labeled = self.true[:self.labeled_bs]
 
-        consistency_loss = tf.math.reduce_mean((lsf_to_mask - pred) ** 2)
+        # supervised loss (labeled images)
+        true_lsf = tf.py_function(compute_lsf_gt, [self.true[:], true_labeled.shape], tf.float32)
+        loss_lsf = self.mse(pred_tanh_labeled, true_lsf)
+        loss_seg_dice = self.dice_loss(pred_labeled, true_labeled == 1)
         supervised_loss = loss_seg_dice + self.beta * loss_lsf
+
+        # unsupervised loss (no labels)
+        lsf_to_mask = tf.keras.activations.sigmoid(-self.k * pred_tanh)
+        consistency_loss = tf.math.reduce_mean((lsf_to_mask - pred) ** 2)
         consistency_weight = self.get_current_consistency_weight(self.epoch // self.consistency_interval)
 
+        # overall DTC loss
         return supervised_loss + consistency_weight * consistency_loss
 
 
