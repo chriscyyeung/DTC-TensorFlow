@@ -5,6 +5,7 @@ import tqdm
 import datetime
 import tensorflow as tf
 import tensorflow_addons as tfa
+from pathlib import Path
 
 import dataloader
 from losses import DTCLoss
@@ -26,7 +27,7 @@ class Model:
 
         # I/O settings
         self.data_dir = os.path.join(os.path.dirname(os.getcwd()), self.config["DataDirectory"])
-        self.model_save_path = self.config["ModelSavePath"]
+        self.model_save_dir = os.path.join(os.path.dirname(os.getcwd()), self.config["ModelSaveDir"])
 
         # model settings
         self.input_shape = self.config["TrainingSettings"]["InputShape"]
@@ -133,15 +134,13 @@ class Model:
                              (self.current_iter // self.lr_decay_interval)
                     self.optimizer.lr.assign(new_lr)
                     print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
-                break
-            break
+
+            print(f"{datetime.datetime.now()}: Epoch {self.current_iter + 1} complete.")
 
         # save model
-        complete_model_save_path = os.path.join(
-            os.path.dirname(os.getcwd()),
-            self.model_save_path,
-            f"DTC_{self.num_labeled}_labels"
-        )
+        if not os.path.isdir(self.model_save_dir):
+            Path(self.model_save_dir).mkdir(exist_ok=True)
+        complete_model_save_path = os.path.join(self.model_save_dir, f"DTC_{self.num_labeled}_labels")
         self.network.save(complete_model_save_path)
         print(f"{datetime.datetime.now()}: Trained model saved to {complete_model_save_path}.")
 

@@ -1,7 +1,7 @@
 {
     "ProjectName": "DTC TensorFlow",
     "DataDirectory": "data/2018_LA_Seg_Challenge",
-    "ModelSavePath": "models",
+    "ModelSaveDir": "models",
     "TrainingSettings": {
         "InputShape": [112, 112, 80, 1],
         "Epochs": 6000,
