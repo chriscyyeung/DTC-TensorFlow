@@ -122,7 +122,6 @@ class RandomFlip:
         return {"image": image, "label": label}
 
 
-# TODO: not sure how the image dimensions will fit in with network
 class ToTensor:
     """Converts the 3D image arrays in a sample to Tensors."""
     def __init__(self):
