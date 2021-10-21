@@ -4,12 +4,22 @@
         "DataDirectory": "data/2018_LA_Seg_Challenge",
         "InputShape": [112, 112, 80, 1],
         "Epochs": 6000,
-        "InitialLearningRate": 0.01,
-        "LearningRateDecay": 0.1,
-        "LearningRateDecayInterval": 2500,
         "BatchSize": 4,
-        "k": 1500,
         "DropoutRate": 0.5,
-        "Pipeline": "configs/pipeline.yaml"
+        "Pipeline": "configs/pipeline.yaml",
+        "Optimizer": {
+            "InitialLearningRate": 0.01,
+            "LearningRateDecay": 0.1,
+            "LearningRateDecayInterval": 2500,
+            "WeightDecay": 0.0001,
+            "Momentum": 0.9
+        },
+        "Loss":{
+            "K": 1500,
+            "Beta": 0.3,
+            "Consistency": 1.0,
+            "ConsistencyRampup": 40.0,
+            "ConsistencyInterval": 150
+        }
     }
 }

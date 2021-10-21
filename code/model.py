@@ -1,35 +1,52 @@
 import os
 import json
 import yaml
+import tqdm
 import datetime
+import numpy as np
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 import LA_dataset
-from utils import *
-from losses import *
-from metrics import *
+from losses import DTCLoss
 from vnet import VNet
 
 
 class Model:
     def __init__(self, config):
         self.config = config
-        self.network = None
         self.train_iterator = None
         self.test_iterator = None
+        self.network = None
+        self.loss_fn = None
+        self.optimizer = None
+        self.current_iter = 0
 
     def read_config(self):
         print(f"{datetime.datetime.now()}: Reading configuration file...")
 
         self.data_dir = os.path.join(os.path.dirname(os.getcwd()), self.config["TrainingSettings"]["DataDirectory"])
 
+        # model settings
         self.input_shape = self.config["TrainingSettings"]["InputShape"]
         self.epochs = self.config["TrainingSettings"]["Epochs"]
-        self.initial_learning_rate = self.config["TrainingSettings"]["InitialLearningRate"]
-        self.learning_rate_decay = self.config["TrainingSettings"]["LearningRateDecay"]
         self.batch_size = self.config["TrainingSettings"]["BatchSize"]
         self.dropout_rate = self.config["TrainingSettings"]["DropoutRate"]
         self.training_pipeline = self.config["TrainingSettings"]["Pipeline"]
+
+        # optimizer settings
+        self.initial_learning_rate = self.config["TrainingSettings"]["Optimizer"]["InitialLearningRate"]
+        self.learning_rate_decay = self.config["TrainingSettings"]["Optimizer"]["LearningRateDecay"]
+        self.lr_decay_interval = self.config["TrainingSettings"]["Optimizer"]["LearningRateDecayInterval"]
+        self.weight_decay = self.config["TrainingSettings"]["Optimizer"]["WeightDecay"]
+        self.momentum = self.config["TrainingSettings"]["Optimizer"]["Momentum"]
+
+        # loss settings
+        self.sigmoid_k = self.config["TrainingSettings"]["Loss"]["K"]
+        self.beta = self.config["TrainingSettings"]["Loss"]["Beta"]
+        self.consistency = self.config["TrainingSettings"]["Loss"]["Consistency"]
+        self.consistency_rampup = self.config["TrainingSettings"]["Loss"]["ConsistencyRampup"]
+        self.consistency_interval = self.config["TrainingSettings"]["Loss"]["ConsistencyInterval"]
 
         print(f"{datetime.datetime.now()}: Reading configuration file complete.")
 
@@ -40,11 +57,17 @@ class Model:
         dataset = dataset.batch(self.batch_size)
         return dataset
 
-    # TODO
-    @tf.function
-    def train_step(self, model, next_element):
+    # @tf.function  # TODO
+    def train_step(self, next_element, epoch):
+        label = next_element[1]
         with tf.GradientTape() as tape:
-            predictions = model(next_element["image"])
+            pred_tanh, pred = self.network(next_element[0])
+            self.loss_fn.set_true(label[:, :, :, :, 0].numpy())
+            self.loss_fn.set_epoch(epoch)
+            loss = self.loss_fn(pred[:, :, :, :, 0].numpy(), pred_tanh[:, :, :, :, 0].numpy())
+        grads = tape.gradient(loss, self.network.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.network.trainable_weights))
+        return loss
 
     def train(self):
         # read config file
@@ -52,6 +75,7 @@ class Model:
 
         # get images/labels and apply data augmentation
         with tf.device("/cpu:0"):
+            print(f"{datetime.datetime.now()}: Loading images and applying transformations...")
             # load pipeline from yaml
             with open(os.path.join(os.path.dirname(os.getcwd()), self.training_pipeline), "r") as f:
                 pipeline = yaml.load(f, Loader=yaml.FullLoader)
@@ -80,15 +104,32 @@ class Model:
             self.train_iterator = self.get_dataset_iterator(self.data_dir, transforms=train_transforms)
             self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
 
-        # TODO: instantiate network, losses, metrics, optimizers
-        # instantiate VNet model
-        self.network = VNet(self.input_shape)
+            print(f"{datetime.datetime.now()}: Image loading and transformation complete.")
 
-        for elem in self.train_iterator:
-            label = elem[1][:, :, :, :, 0]
-            print(np.max(label), np.min(label))
-            label_lsf = compute_lsf_gt(label.numpy(), label.shape)
-            print(np.max(label_lsf), np.min(label_lsf))
+        # instantiate VNet model, loss function, optimizer
+        self.network = VNet(self.input_shape)
+        self.loss_fn = DTCLoss(
+            self.sigmoid_k,
+            self.beta,
+            self.consistency,
+            self.consistency_rampup,
+            self.consistency_interval
+        )
+        self.optimizer = tfa.optimizers.SGDW(
+            self.weight_decay,
+            self.initial_learning_rate,
+            self.momentum
+        )
+
+        # train the network
+        max_epochs = self.epochs // len(self.train_iterator)  # number of passes through entire dataset
+        for epoch in tqdm.tqdm(range(max_epochs + 1)):
+            print(f"{datetime.datetime.now()}: Starting epoch {epoch}...")
+            for sampled_batch in self.train_iterator:
+                loss = self.train_step(sampled_batch, self.current_iter)
+                print(f"loss: {loss}")
+                self.current_iter += 1
+                break
             break
 
     def test(self):
