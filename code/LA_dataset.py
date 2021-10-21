@@ -69,7 +69,7 @@ class RandomCrop:
     """
     def __init__(self, output_size, seed):
         self.name = "RandomCrop"
-        self.rng = tf.random.Generator.from_seed(seed)
+        self.seed = seed
 
         assert isinstance(output_size, (int, tuple, list))
         if isinstance(output_size, int):
@@ -81,9 +81,8 @@ class RandomCrop:
     def __call__(self, sample):
         image, label = sample["image"], sample["label"]
 
-        seed = self.rng.uniform_full_int([2], dtype=tf.int32)
-        image = tf.image.stateless_random_crop(image, self.output_size, seed)
-        label = tf.image.stateless_random_crop(label, self.output_size, seed)
+        image = tf.image.random_crop(image, self.output_size, self.seed)
+        label = tf.image.random_crop(label, self.output_size, self.seed)
 
         return {"image": image, "label": label}
 
@@ -107,19 +106,18 @@ class RandomFlip:
     """Randomly flips the image in a sample along its x or y axis."""
     def __init__(self, seed):
         self.name = "RandomFlip"
-        self.rng = tf.random.Generator.from_seed(seed)
+        self.seed = seed
 
     def __call__(self, sample):
         image, label = sample["image"], sample["label"]
 
-        seed = self.rng.uniform_full_int([2], dtype=tf.int32)
         axis = np.random.randint(2)
         if axis:  # flip along y axis
-            image = tf.image.stateless_random_flip_left_right(image, seed)
-            label = tf.image.stateless_random_flip_left_right(label, seed)
+            image = tf.image.random_flip_left_right(image, self.seed)
+            label = tf.image.random_flip_left_right(label, self.seed)
         else:  # flip along x axis
-            image = tf.image.stateless_random_flip_up_down(image, seed)
-            label = tf.image.stateless_random_flip_up_down(label, seed)
+            image = tf.image.random_flip_up_down(image, self.seed)
+            label = tf.image.random_flip_up_down(label, self.seed)
 
         return {"image": image, "label": label}
 

@@ -137,9 +137,3 @@ def softmax_kl_loss(input_logits, gt_logits, sigmoid=False):
     kl = tf.keras.losses.KLDivergence()
     kl_div = kl(gt_softmax, input_log_softmax)
     return kl_div
-
-
-
-
-
-
