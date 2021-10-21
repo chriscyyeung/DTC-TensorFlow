@@ -3,7 +3,6 @@ import json
 import yaml
 import tqdm
 import datetime
-import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
 
@@ -144,7 +143,8 @@ class Model:
                     print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
 
     def test(self):
-        pass
+        # TODO
+        raise NotImplementedError
 
 
 if __name__ == '__main__':

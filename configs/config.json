@@ -21,5 +21,6 @@
             "ConsistencyRampup": 40.0,
             "ConsistencyInterval": 150
         }
-    }
+    },
+    "Seed": 2021
 }
