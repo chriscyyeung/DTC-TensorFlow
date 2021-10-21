@@ -5,9 +5,9 @@ from scipy.ndimage import distance_transform_edt as distance
 
 def compute_lsf_gt(label, output_shape):
     """Computes the signed distance function of a binary image label.
-    sdf(x) = 0 (x in segmentation boundary),
-             -inf|x-y| (x in segmentation),
-             +inf|x-y| (x outside of segmentation)
+        sdf(x) = 0 (x in segmentation boundary),
+                 -inf|x-y| (x in segmentation),
+                 +inf|x-y| (x outside of segmentation)
 
     :param label: the segmentation mask with shape (batch size, x, y, z)
     :param output_shape: a tuple or list of shape (batch size, x, y, z)
@@ -27,3 +27,25 @@ def compute_lsf_gt(label, output_shape):
             sdf[boundary == 1] = 0
             normalized_sdf[batch] = sdf
     return normalized_sdf
+
+
+def sigmoid_rampup(epoch, rampup_length):
+    """Exponential rampup from https://arxiv.org/abs/1610.02242 to
+    control the balance between the supervised loss and the unsupervised
+    consistency loss. Uses a time-dependent Gaussian function as follows:
+        gamma(t) = e^(-5(1-(t/tmax))^2)
+
+    :param epoch: an int denoting the current training step
+    :param rampup_length: a float representing the rampup length
+    :return: a float representing gamma at the current training step
+    """
+    if rampup_length == 0:
+        return 1.0
+    current = np.clip(epoch, 0.0, rampup_length)
+    phase = 1.0 - current / rampup_length
+    return float(np.exp(-5.0 * phase * phase))
+
+
+if __name__ == '__main__':
+    for i in range(6001):
+        print(sigmoid_rampup(i // 150, 40.0))
