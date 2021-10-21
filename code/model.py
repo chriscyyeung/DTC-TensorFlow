@@ -57,11 +57,13 @@ class Model:
         dataset = dataset.batch(self.batch_size)
         return dataset
 
-    # @tf.function  # TODO
+    @tf.function
     def train_step(self, next_element, epoch):
         label = next_element[1]
         with tf.GradientTape() as tape:
+            # get predictions
             pred_tanh, pred = self.network(next_element[0])
+            # calculate loss
             self.loss_fn.set_true(label[:, :, :, :, 0])
             self.loss_fn.set_epoch(epoch)
             loss = self.loss_fn(pred[:, :, :, :, 0], pred_tanh[:, :, :, :, 0])
@@ -123,14 +125,23 @@ class Model:
 
         # train the network
         max_epochs = self.epochs // len(self.train_iterator)  # number of passes through entire dataset
+        print(f"{datetime.datetime.now()}: Beginning training...")
         for epoch in tqdm.tqdm(range(max_epochs + 1)):
-            print(f"{datetime.datetime.now()}: Starting epoch {epoch}...")
-            for sampled_batch in self.train_iterator:
+            for sampled_batch in tqdm.tqdm(self.train_iterator):
+                print(f"{datetime.datetime.now()}: Starting epoch {self.current_iter + 1}...")
                 loss = self.train_step(sampled_batch, self.current_iter)
-                print(f"loss: {loss}")
                 self.current_iter += 1
-                break
-            break
+
+                # log loss every 100 iterations
+                if self.current_iter % 100 == 0:
+                    print(f"{datetime.datetime.now()}: Model loss at epoch {self.current_iter}: {loss:.4f}")
+
+                # adjust learning rate
+                if self.current_iter % self.lr_decay_interval == 0:
+                    new_lr = self.initial_learning_rate * self.learning_rate_decay ** \
+                             (self.current_iter // self.lr_decay_interval)
+                    self.optimizer.lr.assign(new_lr)
+                    print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
 
     def test(self):
         pass

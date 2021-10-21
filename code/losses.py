@@ -44,7 +44,7 @@ class DTCLoss(tf.keras.losses.Loss):
 
     def call(self, pred, pred_tanh):
         pred = tf.keras.activations.sigmoid(pred)
-        true_lsf = compute_lsf_gt(self.true.numpy(), self.true.numpy().shape)
+        true_lsf = tf.py_function(compute_lsf_gt, [self.true, self.true.shape], tf.float32)
 
         loss_lsf = self.mse(pred_tanh, true_lsf)
         loss_seg_dice = self.dice_loss(pred, self.true == 1)

@@ -15,6 +15,7 @@ def compute_lsf_gt(label, output_shape):
     :return: a Tensor of the [-1, 1] normalized signed distance function
              of the segmentation mask
     """
+    label = label.numpy()
     normalized_sdf = np.zeros(output_shape)
     for batch in range(output_shape[0]):
         pos_mask = label[batch].astype(np.bool)
