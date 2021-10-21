@@ -83,7 +83,6 @@ class Model:
 
             # get list of transforms
             train_transforms = []
-            test_transforms = []
 
             if pipeline["preprocess"]["train"] is not None:
                 for transform in pipeline["preprocess"]["train"]:
@@ -93,17 +92,8 @@ class Model:
                         tfm_class = getattr(LA_dataset, transform["name"])()
                     train_transforms.append(tfm_class)
 
-            if pipeline["preprocess"]["test"] is not None:
-                for transform in pipeline["preprocess"]["test"]:
-                    try:
-                        tfm_class = getattr(LA_dataset, transform["name"])(*[], **transform["variables"])
-                    except KeyError:
-                        tfm_class = getattr(LA_dataset, transform["name"])()
-                    test_transforms.append(tfm_class)
-
             # generate tensorflow datasets
             self.train_iterator = self.get_dataset_iterator(self.data_dir, transforms=train_transforms)
-            self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
 
             print(f"{datetime.datetime.now()}: Image loading and transformation complete.")
 
@@ -142,9 +132,29 @@ class Model:
                     self.optimizer.lr.assign(new_lr)
                     print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
 
+    # TODO
     def test(self):
-        # TODO
-        raise NotImplementedError
+        # get images/labels and apply data augmentation
+        with tf.device("/cpu:0"):
+            print(f"{datetime.datetime.now()}: Loading images and applying transformations...")
+            # load pipeline from yaml
+            with open(os.path.join(os.path.dirname(os.getcwd()), self.training_pipeline), "r") as f:
+                pipeline = yaml.load(f, Loader=yaml.FullLoader)
+
+            # get list of transforms
+            test_transforms = []
+            if pipeline["preprocess"]["test"] is not None:
+                for transform in pipeline["preprocess"]["test"]:
+                    try:
+                        tfm_class = getattr(LA_dataset, transform["name"])(*[], **transform["variables"])
+                    except KeyError:
+                        tfm_class = getattr(LA_dataset, transform["name"])()
+                    test_transforms.append(tfm_class)
+
+            # generate tensorflow datasets
+            self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
+
+            print(f"{datetime.datetime.now()}: Image loading and transformation complete.")
 
 
 if __name__ == '__main__':
