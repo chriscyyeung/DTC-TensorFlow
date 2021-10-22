@@ -2,6 +2,7 @@
     "ProjectName": "DTC TensorFlow",
     "DataDirectory": "data/2018_LA_Seg_Challenge",
     "ModelSaveDir": "models",
+    "PredictionSavePath": "results",
     "TrainingSettings": {
         "InputShape": [112, 112, 80, 1],
         "Epochs": 6000,
@@ -24,6 +25,10 @@
             "ConsistencyRampup": 40.0,
             "ConsistencyInterval": 150
         }
+    },
+    "TestingSettings": {
+        "XYStride": 18,
+        "ZStride": 4
     },
     "Seed": 2021
 }
