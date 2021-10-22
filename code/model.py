@@ -123,6 +123,7 @@ class Model:
                 print(f"{datetime.datetime.now()}: Starting epoch {self.current_iter + 1}...")
                 current_iter = tf.convert_to_tensor(self.current_iter, dtype=tf.int64)
                 loss = self.train_step(sampled_batch, current_iter)
+                print(f"{datetime.datetime.now()}: Epoch {self.current_iter + 1} complete.")
                 self.current_iter += 1
 
                 # log loss every 100 iterations
@@ -135,7 +136,6 @@ class Model:
                              (self.current_iter // self.lr_decay_interval)
                     self.optimizer.lr.assign(new_lr)
                     print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
-                print(f"{datetime.datetime.now()}: Epoch {self.current_iter + 1} complete.")
 
         # save model
         if not os.path.isdir(self.model_save_dir):

@@ -94,8 +94,8 @@ class LAHeart:
 
     def __len__(self):
         if self.train:
-            # number of batches per one run though dataset * batch size
-            return int(self.num_labeled / self.labeled_bs * self.batch_size)
+            # number of batches per one run though dataset
+            return int(self.num_labeled / self.labeled_bs)
         else:
             # use all for testing
             return self.total_num_images
