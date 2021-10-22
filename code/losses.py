@@ -59,7 +59,11 @@ class DTCLoss(tf.keras.losses.Loss):
         # unsupervised loss (no labels)
         lsf_to_mask = tf.keras.activations.sigmoid(-self.k * pred_tanh)
         consistency_loss = tf.math.reduce_mean((lsf_to_mask - pred) ** 2)
-        consistency_weight = self.get_current_consistency_weight(self.epoch // self.consistency_interval)
+        consistency_weight = tf.py_function(
+            self.get_current_consistency_weight,
+            [self.epoch // self.consistency_interval],
+            tf.float32
+        )
 
         # overall DTC loss
         return supervised_loss + consistency_weight * consistency_loss

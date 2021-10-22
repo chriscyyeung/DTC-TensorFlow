@@ -121,7 +121,8 @@ class Model:
         for epoch in tqdm.tqdm(range(max_epochs + 1)):
             for sampled_batch in tqdm.tqdm(self.train_iterator()):
                 print(f"{datetime.datetime.now()}: Starting epoch {self.current_iter + 1}...")
-                loss = self.train_step(sampled_batch, self.current_iter)
+                current_iter = tf.convert_to_tensor(self.current_iter, dtype=tf.int64)
+                loss = self.train_step(sampled_batch, current_iter)
                 self.current_iter += 1
 
                 # log loss every 100 iterations
