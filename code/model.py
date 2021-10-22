@@ -146,8 +146,6 @@ class Model:
                              (self.current_iter // self.lr_decay_interval)
                     self.optimizer.lr.assign(new_lr)
                     print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
-                break
-            break
 
         # save model
         if not os.path.isdir(self.model_save_dir):
