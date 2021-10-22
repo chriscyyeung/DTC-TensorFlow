@@ -10,7 +10,7 @@ from pathlib import Path
 import dataloader
 from losses import DTCLoss
 from vnet import VNet
-
+from test_util import *
 
 class Model:
     def __init__(self, config):
@@ -164,9 +164,27 @@ class Model:
                     test_transforms.append(tfm_class)
 
             # TODO: need to modify since LAHeart class was changed
-            self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
+            #self.test_iterator = self.get_dataset_iterator(self.data_dir, transforms=test_transforms, train=False)
+            self.test_iterator = dataloader.LAHeart(
+                data_dir=self.data_dir,
+                transforms=test_transforms,
+                train=False,
+                batch_size=self.batch_size,
+                labeled_bs=self.labeled_bs,
+                num_labeled=self.num_labeled
+            )
 
             print(f"{datetime.datetime.now()}: Image loading and transformation complete.")
+
+        # load saved model
+        if not os.path.isdir(self.model_save_dir):
+            Path(self.model_save_dir).mkdir(exist_ok=True)
+        complete_model_save_path = os.path.join(self.model_save_dir, f"DTC_{self.num_labeled}_labels")
+        loaded_model = tf.keras.models.load_model(complete_model_save_path)
+
+        avg_metric = test_all_cases(loaded_model, self.test_iterator, test_save_path='/models/')
+
+
 
 
 if __name__ == '__main__':
