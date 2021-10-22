@@ -43,7 +43,7 @@ def sigmoid_rampup(epoch, rampup_length):
     """
     if rampup_length == 0:
         return 1.0
-    current = np.clip(epoch, 0.0, rampup_length)
+    current = np.clip(epoch.numpy(), 0.0, rampup_length)
     phase = 1.0 - current / rampup_length
     return float(np.exp(-5.0 * phase * phase))
 
