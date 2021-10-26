@@ -214,8 +214,8 @@ class Model:
                 print(f"Image number: {idx}\n, "
                       f"\tDice Coefficient: {single_metric[0]:.5f}\n, "
                       f"\tJaccard: {single_metric[1]:.5f}\n, "
-                      f"\tAverage Surface Distance (ASD): {single_metric[2]:.5f}\n, "
-                      f"\t95% Hausdorff Distance (HD): {single_metric[3]:.5f}")
+                      f"\t95% Hausdorff Distance (HD): {single_metric[2]:.5f}\n, "
+                      f"\tAverage Surface Distance (ASD): {single_metric[3]:.5f}\n, ")
 
             total_metric += np.asarray(single_metric)
 
