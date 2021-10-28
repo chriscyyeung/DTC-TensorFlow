@@ -16,6 +16,7 @@ import dataloader
 from losses import DTCLoss
 from vnet import VNet
 
+
 class Model:
     def __init__(self, config):
         self.config = config

@@ -5,7 +5,7 @@
     "PredictionSavePath": "results",
     "TrainingSettings": {
         "InputShape": [112, 112, 80, 1],
-        "Epochs": 3000,
+        "Epochs": 6000,
         "BatchSize": 4,
         "LabeledBatchSize": 2,
         "NumberLabeledImages": 16,

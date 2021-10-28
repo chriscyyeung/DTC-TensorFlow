@@ -1,0 +1,10 @@
+# packages required for running DTC-TensorFlow repo
+tqdm
+pyyaml==6.0
+h5py
+nibabel
+numpy
+medpy
+scikit-image
+tensorflow
+tensorflow-addons
