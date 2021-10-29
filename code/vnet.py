@@ -62,8 +62,8 @@ class ConvBlock(tf.keras.layers.Layer, Block):
         self.relu = tf.keras.layers.ReLU()
 
     def call(self, x):
-        # add input to output of last convolution
-        x = (self.conv(x) + x)
+        # x = (self.conv(x) + x)  # residual function
+        x = self.conv(x)
         x = self.relu(x)
         return x
 
