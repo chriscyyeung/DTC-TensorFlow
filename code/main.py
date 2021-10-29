@@ -43,6 +43,11 @@ def main(args):
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
+    # tensorflow gpu options
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+
     # run model
     model = Model(config)
     if args.phase == "train":
