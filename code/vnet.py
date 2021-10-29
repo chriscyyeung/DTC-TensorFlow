@@ -52,14 +52,14 @@ class ConvBlock(tf.keras.layers.Layer, Block):
                                                   kernel_initializer="he_uniform"))
             else:
                 ops.append(tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides, padding="same",
-                                                     kernel_initializer="he_uniform"))
+                                                  kernel_initializer="he_uniform"))
             ops.append(tf.keras.layers.BatchNormalization())
             # residual function
             if i != n_stages - 1:
-                ops.append(tf.keras.layers.PReLU())
+                ops.append(tf.keras.layers.ReLU())
 
         self.conv = tf.keras.Sequential(ops)
-        self.relu = tf.keras.layers.PReLU()
+        self.relu = tf.keras.layers.ReLU()
 
     def call(self, x):
         # add input to output of last convolution
@@ -78,7 +78,7 @@ class DownsamplingConvBlock(tf.keras.layers.Layer, Block):
                                    padding=padding, input_shape=inputs_shape,
                                    kernel_initializer="he_uniform"),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.PReLU()
+            tf.keras.layers.ReLU()
         ]
 
         self.conv = tf.keras.Sequential(ops)
@@ -98,7 +98,7 @@ class UpsamplingDeconvBlock(tf.keras.layers.Layer, Block):
                                             padding=padding, input_shape=inputs_shape,
                                             kernel_initializer="he_uniform"),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.PReLU()
+            tf.keras.layers.ReLU()
         ]
 
         self.conv = tf.keras.Sequential(ops)
@@ -113,12 +113,9 @@ class OneByOneConvBlock(tf.keras.layers.Layer, Block):
         tf.keras.layers.Layer.__init__(self)
         Block.__init__(self, inputs_shape, n_channels_out, kernel_size, strides, padding)
 
-        self.conv = tf.keras.Sequential()
-        self.conv.add(
-            tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides,
-                                   padding=padding, input_shape=inputs_shape,
-                                   kernel_initializer="he_uniform")
-        )
+        self.conv = tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides,
+                                           padding=padding, input_shape=inputs_shape,
+                                           kernel_initializer="he_uniform")
 
     def call(self, x):
         x = self.conv(x)
