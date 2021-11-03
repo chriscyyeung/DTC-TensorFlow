@@ -54,17 +54,18 @@ class ConvBlock(tf.keras.layers.Layer, Block):
                 ops.append(tf.keras.layers.Conv3D(n_channels_out, kernel_size, strides=strides, padding="same",
                                                   kernel_initializer="he_uniform"))
             ops.append(tf.keras.layers.BatchNormalization())
+            ops.append(tf.keras.layers.ReLU())
             # residual function
-            if i != n_stages - 1:
-                ops.append(tf.keras.layers.ReLU())
+            # if i != n_stages - 1:
+            #     ops.append(tf.keras.layers.ReLU())
 
         self.conv = tf.keras.Sequential(ops)
-        self.relu = tf.keras.layers.ReLU()
+        # self.relu = tf.keras.layers.ReLU()
 
     def call(self, x):
         # x = (self.conv(x) + x)  # residual function
         x = self.conv(x)
-        x = self.relu(x)
+        # x = self.relu(x)
         return x
 
 

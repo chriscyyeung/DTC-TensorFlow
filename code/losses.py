@@ -43,28 +43,27 @@ class DTCLoss(tf.keras.losses.Loss):
         self.epoch = epoch
 
     def call(self, pred, pred_tanh):
-        pred = tf.keras.activations.sigmoid(pred)  # convert to logits
+        pred_soft = tf.keras.activations.sigmoid(pred)  # convert to logits
 
         # labeled predictions
-        pred_labeled = pred[:self.labeled_bs]
+        pred_labeled = pred_soft[:self.labeled_bs]
         pred_tanh_labeled = pred_tanh[:self.labeled_bs]
         true_labeled = self.true[:self.labeled_bs]
 
         # supervised loss (labeled images)
-        true_lsf = tf.py_function(compute_lsf_gt, [self.true[:], true_labeled.shape], tf.float32)
+        true_lsf = tf.py_function(compute_lsf_gt, [self.true[:], pred_labeled.shape], tf.float32)
         loss_lsf = self.mse(pred_tanh_labeled, true_lsf)
         loss_seg_dice = self.dice_loss(pred_labeled, true_labeled == 1)
         supervised_loss = loss_seg_dice + self.beta * loss_lsf
 
         # unsupervised loss (no labels)
         lsf_to_mask = tf.keras.activations.sigmoid(-self.k * pred_tanh)
-        consistency_loss = tf.math.reduce_mean((lsf_to_mask - pred) ** 2)
+        consistency_loss = tf.math.reduce_mean((lsf_to_mask - pred_soft) ** 2)
         consistency_weight = tf.py_function(
             self.get_current_consistency_weight,
             [self.epoch // self.consistency_interval],
             tf.float32
         )
-
         # overall DTC loss
         return supervised_loss + consistency_weight * consistency_loss
 

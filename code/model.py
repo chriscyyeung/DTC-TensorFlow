@@ -75,8 +75,8 @@ class Model:
             self.loss_fn.set_true(label[..., 0])
             self.loss_fn.set_epoch(epoch)
             loss = self.loss_fn(pred[..., 0], pred_tanh[..., 0])
-        grads = tape.gradient(loss, self.network.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads, self.network.trainable_weights))
+        grads = tape.gradient(loss, self.network.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, self.network.trainable_variables))
         return loss
 
     def train(self):
@@ -91,7 +91,6 @@ class Model:
 
             # get list of transforms
             train_transforms = []
-
             if pipeline["preprocess"]["train"] is not None:
                 for transform in pipeline["preprocess"]["train"]:
                     try:
@@ -130,16 +129,11 @@ class Model:
         max_epochs = round(self.epochs / len(self.train_iterator))  # number of passes through dataset
         print(f"{datetime.datetime.now()}: Beginning training...")
         for epoch in tqdm.tqdm(range(max_epochs + 1)):
-            for sampled_batch in tqdm.tqdm(self.train_iterator()):
-                print(f"{datetime.datetime.now()}: Starting epoch {self.current_iter + 1}...")
+            for sampled_batch in self.train_iterator():
                 current_iter = tf.convert_to_tensor(self.current_iter, dtype=tf.int64)
                 loss = self.train_step(sampled_batch, current_iter)
-                print(f"{datetime.datetime.now()}: Epoch {self.current_iter + 1} complete.")
                 self.current_iter += 1
-
-                # log loss every 100 iterations
-                if self.current_iter % 100 == 0:
-                    print(f"{datetime.datetime.now()}: Model loss at epoch {self.current_iter}: {loss:.4f}")
+                print(f"{datetime.datetime.now()}: Epoch {self.current_iter}: loss: {loss}")
 
                 # adjust learning rate
                 if self.current_iter % self.lr_decay_interval == 0:
@@ -147,6 +141,10 @@ class Model:
                              (self.current_iter // self.lr_decay_interval)
                     self.optimizer.lr.assign(new_lr)
                     print(f"{datetime.datetime.now()}: Learning rate decayed to {new_lr}")
+
+                # break when 6000 iterations reached
+                if self.current_iter >= self.epochs:
+                    break
 
         # save model
         if not os.path.isdir(self.model_save_dir):
