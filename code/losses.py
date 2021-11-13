@@ -17,41 +17,26 @@ class DTCLoss(tf.keras.losses.Loss):
         self.labeled_bs = labeled_bs
         self.mse = tf.keras.losses.MeanSquaredError()
         self.epoch = 0
-        self.true = None
-
-    @staticmethod
-    def dice_loss(pred, true):
-        true = tf.cast(true, tf.float32)
-
-        smooth = 1e-5
-        intersect = tf.math.reduce_sum(pred * true)
-
-        gt_sum = tf.math.reduce_sum(true * true)
-        predicted_sum = tf.math.reduce_sum(pred * pred)
-
-        loss = (2 * intersect + smooth) / (gt_sum + predicted_sum + smooth)
-        loss = 1 - loss
-        return loss
 
     def get_current_consistency_weight(self, epoch):
         return self.consistency * sigmoid_rampup(epoch, self.consistency_rampup)
 
-    def set_true(self, true):
-        self.true = true
-
     def set_epoch(self, epoch):
         self.epoch = epoch
 
-    def call(self, pred, pred_tanh):
-        pred_soft = tf.keras.activations.sigmoid(pred)  # convert to logits
+    def call(self, y_true, y_pred):
+        y_true = y_true[..., 0]
+        y_pred = y_pred[..., 0]
+        pred_tanh = tf.keras.activations.tanh(y_pred)
+        pred_soft = tf.keras.activations.sigmoid(y_pred)  # convert to logits
 
         # labeled predictions
         pred_labeled = pred_soft[:self.labeled_bs]
         pred_tanh_labeled = pred_tanh[:self.labeled_bs]
-        true_labeled = self.true[:self.labeled_bs]
+        true_labeled = y_true[:self.labeled_bs]
 
         # supervised loss (labeled images)
-        true_lsf = tf.py_function(compute_lsf_gt, [self.true[:], pred_labeled.shape], tf.float32)
+        true_lsf = tf.py_function(compute_lsf_gt, [y_true[:], tf.shape(pred_labeled)], tf.float32)
         loss_lsf = self.mse(pred_tanh_labeled, true_lsf)
         loss_seg_dice = self.dice_loss(pred_labeled, true_labeled == 1)
         supervised_loss = loss_seg_dice + self.beta * loss_lsf
@@ -66,6 +51,20 @@ class DTCLoss(tf.keras.losses.Loss):
         )
         # overall DTC loss
         return supervised_loss + consistency_weight * consistency_loss
+
+    @staticmethod
+    def dice_loss(pred, true):
+        true = tf.cast(true, tf.float32)
+
+        smooth = 1e-5
+        intersect = tf.math.reduce_sum(pred * true)
+
+        gt_sum = tf.math.reduce_sum(true * true)
+        predicted_sum = tf.math.reduce_sum(pred * pred)
+
+        loss = (2 * intersect + smooth) / (gt_sum + predicted_sum + smooth)
+        loss = 1 - loss
+        return loss
 
 
 def dice_loss1(predicted, target_gt):

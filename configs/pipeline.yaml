@@ -10,6 +10,5 @@ preprocess:
     - name: "RandomFlip"
       variables:
         seed: 2021
-    - name: "ToTensor"
 
   test:

@@ -217,17 +217,22 @@ class VNet(tf.keras.Model):
 
         # regression task
         out = self.out_conv(x9)
-        out_tanh = self.tanh(out)
+        # out_tanh = self.tanh(out)
 
         # classification task
-        out_seg = self.out_conv2(x9)
+        # out_seg = self.out_conv2(x9)
 
-        return out_tanh, out_seg
+        return out
 
-    def call(self, input_volume):
-        features = self.encoder(input_volume)
-        out_tanh, out_seg = self.decoder(features)
-        return out_tanh, out_seg
+    def summary(self):
+        x = tf.keras.layers.Input(shape=(112, 112, 80, 1))
+        model = tf.keras.Model(inputs=[x], outputs=self.call(x))
+        return model.summary(line_length=120)
+
+    def call(self, inputs):
+        features = self.encoder(inputs)
+        out = self.decoder(features)
+        return out
 
 
 if __name__ == "__main__":
