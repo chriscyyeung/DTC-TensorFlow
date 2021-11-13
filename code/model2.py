@@ -249,13 +249,15 @@ class EpochCallback(tf.keras.callbacks.Callback):
     """Class to get the current epoch during training."""
     def __init__(self, loss):
         self.loss = loss
-        self.epoch = None
+        self.epoch = 0
 
     def on_epoch_begin(self, epoch, logs=None):
-        self.epoch = epoch + 1  # starts at 0
+        if self.epoch < 1:
+            self.epoch = epoch  # starts at 0
 
     def on_train_batch_begin(self, batch, logs=None):
-        self.loss.set_epoch(self.epoch * (batch + 1))
+        self.epoch += 1
+        self.loss.set_epoch(self.epoch)
 
 
 class MaxIterationsCallback(tf.keras.callbacks.Callback):
