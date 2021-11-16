@@ -102,7 +102,6 @@ class DataGenerator(tf.keras.utils.Sequence):
             y = np.concatenate((y, np.expand_dims(label.numpy(), axis=0)))
 
         X = X[:, :, :, :, np.newaxis]
-        y = tf.keras.utils.to_categorical(y, self.n_classes)
 
         return X, y
 
@@ -204,5 +203,4 @@ if __name__ == '__main__':
             train_transforms.append(tfm_class)
 
     dataset = DataGenerator(data_dir, transforms=train_transforms)
-    test_image, test_label = dataset[0]
-    print(test_image.shape, test_label.shape)
+    print(len(dataset.get_sample_indices()) == 8 * 4)

@@ -23,7 +23,6 @@ class Model:
         self.network = None
         self.loss_fn = None
         self.optimizer = None
-        self.current_iter = 0
 
     def read_config(self):
         print(f"{datetime.datetime.now()}: Reading configuration file...")
@@ -62,6 +61,16 @@ class Model:
         self.stride_z = self.config["TestingSettings"]["ZStride"]
 
         print(f"{datetime.datetime.now()}: Reading configuration file complete.")
+
+    @tf.function
+    def train_step(self, image, label, epoch):
+        with tf.GradientTape() as tape:
+            out_seg, out_tanh = self.network(image)
+            self.loss_fn.set_epoch(epoch)
+            loss = self.loss_fn(label, out_seg, out_tanh)
+        grads = tape.gradient(loss, self.network.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.network.trainable_weights))
+        return loss
 
     def train(self):
         # read config file
@@ -116,16 +125,33 @@ class Model:
         )
 
         # train model
-        self.network.compile(
-            optimizer=self.optimizer, loss=self.loss_fn)
         epoch_size = len(train_generator)
         epochs = self.iterations // epoch_size + 1
-        train_log = self.network.fit(
-            train_generator,
-            epochs=epochs,
-            steps_per_epoch=epoch_size,
-            callbacks=[EpochCallback(self.loss_fn), MaxIterationsCallback(self.iterations)]
-        )
+        current_iter = tf.convert_to_tensor(0, dtype=tf.int64)
+        for epoch in tqdm.tqdm(range(epochs)):
+            for batch_idx in range(epoch_size):
+                image, label = train_generator[batch_idx]
+                loss = self.train_step(image, label, current_iter)
+                current_iter += 1
+                print(f"{datetime.datetime.now()}: Epoch {current_iter}: loss: {loss}")
+
+                # stop loop when 6000 iterations reached
+                if current_iter >= self.iterations:
+                    break
+            else:
+                # get new batch of images
+                train_generator.on_epoch_end()
+                continue
+            break
+
+        # without custom training loop: DELETE?
+        # self.network.compile(optimizer=self.optimizer, loss=self.loss_fn)
+        # train_log = self.network.fit(
+        #     train_generator,
+        #     epochs=epochs,
+        #     steps_per_epoch=epoch_size,
+        #     callbacks=[EpochCallback(self.loss_fn), MaxIterationsCallback(self.iterations)]
+        # )
 
         # save model
         if not os.path.isdir(self.model_save_dir):

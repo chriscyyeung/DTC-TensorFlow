@@ -5,10 +5,8 @@ from util import compute_lsf_gt, sigmoid_rampup
 # To-do: Add comments
 
 
-class DTCLoss(tf.keras.losses.Loss):
+class DTCLoss:
     def __init__(self, k, beta, consistency, consistency_rampup, consistency_interval, labeled_bs):
-        super().__init__()
-
         self.k = k
         self.beta = beta
         self.consistency = consistency
@@ -24,25 +22,24 @@ class DTCLoss(tf.keras.losses.Loss):
     def set_epoch(self, epoch):
         self.epoch = epoch
 
-    def call(self, y_true, y_pred):
-        y_true = y_true[..., 0]
+    def __call__(self, y_true, y_pred, y_pred_tanh):
         y_pred = y_pred[..., 0]
-        pred_tanh = tf.keras.activations.tanh(y_pred)
+        y_pred_tanh = y_pred_tanh[..., 0]
         pred_soft = tf.keras.activations.sigmoid(y_pred)  # convert to logits
 
         # labeled predictions
         pred_labeled = pred_soft[:self.labeled_bs]
-        pred_tanh_labeled = pred_tanh[:self.labeled_bs]
+        pred_tanh_labeled = y_pred_tanh[:self.labeled_bs]
         true_labeled = y_true[:self.labeled_bs]
 
         # supervised loss (labeled images)
         true_lsf = tf.py_function(compute_lsf_gt, [y_true[:], tf.shape(pred_labeled)], tf.float32)
-        loss_lsf = self.mse(pred_tanh_labeled, true_lsf)
-        loss_seg_dice = self.dice_loss(pred_labeled, true_labeled == 1)
+        loss_lsf = self.mse(true_lsf, pred_tanh_labeled)
+        loss_seg_dice = self.dice_loss(true_labeled == 1, pred_labeled)
         supervised_loss = loss_seg_dice + self.beta * loss_lsf
 
         # unsupervised loss (no labels)
-        lsf_to_mask = tf.keras.activations.sigmoid(-self.k * pred_tanh)
+        lsf_to_mask = tf.keras.activations.sigmoid(-self.k * y_pred_tanh)
         consistency_loss = tf.math.reduce_mean((lsf_to_mask - pred_soft) ** 2)
         consistency_weight = tf.py_function(
             self.get_current_consistency_weight,
@@ -53,7 +50,7 @@ class DTCLoss(tf.keras.losses.Loss):
         return supervised_loss + consistency_weight * consistency_loss
 
     @staticmethod
-    def dice_loss(pred, true):
+    def dice_loss(true, pred):
         true = tf.cast(true, tf.float32)
 
         smooth = 1e-5
@@ -67,23 +64,7 @@ class DTCLoss(tf.keras.losses.Loss):
         return loss
 
 
-def dice_loss1(predicted, target_gt):
-
-    target_gt = target_gt.float()
-
-    smooth = 1e-5
-    intersect = tf.math.reduce_sum(predicted * target_gt)
-
-    gt_sum = tf.math.reduce_sum(target_gt)
-    predicted_sum = tf.math.reduce_sum(predicted)
-
-    loss = (2 * intersect + smooth) / (gt_sum + predicted_sum + smooth)
-    loss = 1 - loss
-    return loss
-
-
 def entropy_loss(p):
-
     num_class = 2
     num_class = tf.convert_to_tensor(num_class)
 
@@ -93,14 +74,12 @@ def entropy_loss(p):
 
 
 def entropy_minimization(p):
-
     ent = -np.mean(np.sum(p * np.log(p + 1e-6)))
 
     return ent
 
 
 def softmax_mse_loss(input_logits, gt_logits, sigmoid=False):
-
     assert input_logits.size() == gt_logits.size()
 
     if sigmoid:
@@ -116,7 +95,6 @@ def softmax_mse_loss(input_logits, gt_logits, sigmoid=False):
 
 
 def softmax_dice_loss(input_logits, gt_logits):
-
     assert input_logits.size() == gt_logits.size()
 
     input_softmax = tf.nn.softmax(input_logits)
@@ -133,7 +111,6 @@ def softmax_dice_loss(input_logits, gt_logits):
 
 
 def softmax_kl_loss(input_logits, gt_logits, sigmoid=False):
-
     assert input_logits.size() == gt_logits.size()
 
     if sigmoid:
