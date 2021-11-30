@@ -13,6 +13,7 @@ from medpy import metric
 from skimage.measure import label
 
 import generator
+from dataloader import LAHeart
 from losses import DTCLoss
 from vnet import VNet
 
@@ -144,15 +145,6 @@ class Model:
                 continue
             break
 
-        # without custom training loop: DELETE?
-        # self.network.compile(optimizer=self.optimizer, loss=self.loss_fn)
-        # train_log = self.network.fit(
-        #     train_generator,
-        #     epochs=epochs,
-        #     steps_per_epoch=epoch_size,
-        #     callbacks=[EpochCallback(self.loss_fn), MaxIterationsCallback(self.iterations)]
-        # )
-
         # save model
         if not os.path.isdir(self.model_save_dir):
             Path(self.model_save_dir).mkdir(exist_ok=True)
@@ -169,7 +161,9 @@ class Model:
         self.network = tf.keras.models.load_model(complete_model_save_path)
         print(f"{datetime.datetime.now()}: Model loaded from {complete_model_save_path}.")
 
-        # TODO: add code to test_all_cases to load images
+        self.test_iterator = LAHeart(
+            self.data_dir
+        )
         avg_metric = self.test_all_cases(
             self.test_iterator(),
             stride_xy=self.stride_xy,
@@ -193,11 +187,11 @@ class Model:
                 single_metric = self.calculate_metric_per_case(pred, label[:].numpy())
 
             if metric_detail:
-                print(f"Image number: {idx}\n, "
-                      f"\tDice Coefficient: {single_metric[0]:.5f}\n, "
-                      f"\tJaccard: {single_metric[1]:.5f}\n, "
-                      f"\t95% Hausdorff Distance (HD): {single_metric[2]:.5f}\n, "
-                      f"\tAverage Surface Distance (ASD): {single_metric[3]:.5f}\n, ")
+                print(f"Image number: {idx},\n "
+                      f"\tDice Coefficient: {single_metric[0]:.5f},\n "
+                      f"\tJaccard: {single_metric[1]:.5f},\n "
+                      f"\t95% Hausdorff Distance (HD): {single_metric[2]:.5f},\n "
+                      f"\tAverage Surface Distance (ASD): {single_metric[3]:.5f}")
 
             total_metric += np.asarray(single_metric)
 
