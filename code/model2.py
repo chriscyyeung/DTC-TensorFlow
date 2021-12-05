@@ -21,9 +21,6 @@ from vnet import VNet
 class Model:
     def __init__(self, config):
         self.config = config
-        self.network = None
-        self.loss_fn = None
-        self.optimizer = None
 
     def read_config(self):
         print(f"{datetime.datetime.now()}: Reading configuration file...")
@@ -63,16 +60,6 @@ class Model:
 
         print(f"{datetime.datetime.now()}: Reading configuration file complete.")
 
-    @tf.function
-    def train_step(self, image, label, epoch):
-        with tf.GradientTape() as tape:
-            out_seg, out_tanh = self.network(image)
-            self.loss_fn.set_epoch(epoch)
-            loss = self.loss_fn(label, out_seg, out_tanh)
-        grads = tape.gradient(loss, self.network.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads, self.network.trainable_weights))
-        return loss
-
     def train(self):
         # read config file
         self.read_config()
@@ -104,8 +91,8 @@ class Model:
         )
 
         # instantiate VNet model, loss function, optimizer, LR decay
-        self.network = VNet(self.input_shape)
-        self.loss_fn = DTCLoss(
+        network = VNet(self.input_shape)
+        loss_fn = DTCLoss(
             self.sigmoid_k,
             self.beta,
             self.consistency,
@@ -119,11 +106,25 @@ class Model:
             decay_rate=self.learning_rate_decay,
             staircase=True
         )
-        self.optimizer = tfa.optimizers.SGDW(
+        optimizer = tfa.optimizers.SGDW(
             self.weight_decay,
             lr_schedule,
             self.momentum
         )
+        # optimizer = tf.keras.optimizers.SGD(
+        #     learning_rate=lr_schedule,
+        #     momentum=self.momentum
+        # )
+
+        @tf.function
+        def train_step(image, label, epoch):
+            with tf.GradientTape() as tape:
+                out_seg, out_tanh = network(image)
+                loss_fn.set_epoch(epoch)
+                loss = loss_fn(label, out_seg, out_tanh)
+            grads = tape.gradient(loss, network.trainable_weights)
+            optimizer.apply_gradients(zip(grads, network.trainable_weights))
+            return loss
 
         # train model
         epoch_size = len(train_generator)
@@ -132,7 +133,7 @@ class Model:
         for epoch in tqdm.tqdm(range(epochs)):
             for batch_idx in range(epoch_size):
                 image, label = train_generator[batch_idx]
-                loss = self.train_step(image, label, current_iter)
+                loss = train_step(image, label, current_iter)
                 current_iter += 1
                 print(f"{datetime.datetime.now()}: Epoch {current_iter}: loss: {loss}")
 
@@ -141,6 +142,7 @@ class Model:
                     break
             else:
                 # get new batch of images
+                print("resetting indexes")
                 train_generator.on_epoch_end()
                 continue
             break
@@ -149,7 +151,7 @@ class Model:
         if not os.path.isdir(self.model_save_dir):
             Path(self.model_save_dir).mkdir(exist_ok=True)
         complete_model_save_path = os.path.join(self.model_save_dir, f"DTC_{self.num_labeled}_labels")
-        self.network.save(complete_model_save_path)
+        network.save(complete_model_save_path)
         print(f"{datetime.datetime.now()}: Trained model saved to {complete_model_save_path}.")
 
     def test(self):

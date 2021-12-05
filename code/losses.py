@@ -28,14 +28,15 @@ class DTCLoss:
         pred_soft = tf.keras.activations.sigmoid(y_pred)  # convert to logits
 
         # labeled predictions
-        pred_labeled = pred_soft[:self.labeled_bs]
+        pred_labeled = y_pred[:self.labeled_bs]
+        pred_soft_labeled = pred_soft[:self.labeled_bs]
         pred_tanh_labeled = y_pred_tanh[:self.labeled_bs]
         true_labeled = y_true[:self.labeled_bs]
 
         # supervised loss (labeled images)
         true_lsf = tf.py_function(compute_lsf_gt, [y_true[:], tf.shape(pred_labeled)], tf.float32)
         loss_lsf = self.mse(true_lsf, pred_tanh_labeled)
-        loss_seg_dice = self.dice_loss(true_labeled == 1, pred_labeled)
+        loss_seg_dice = self.dice_loss(true_labeled == 1, pred_soft_labeled)
         supervised_loss = loss_seg_dice + self.beta * loss_lsf
 
         # unsupervised loss (no labels)

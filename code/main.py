@@ -29,13 +29,42 @@ def get_parser():
         default="configs/config.json",
         help="JSON file for model configuration"
     )
-    args = parser.parse_args()
-    return args
+    parser.add_argument(
+        "--debug_mode",
+        type=bool,
+        choices=[True, False],
+        help="Enable TensorFlow debugger V2"
+    )
+    parser.add_argument(
+        "--dump_dir",
+        type=str,
+        default="/tmp/tfdbg2_logdir"
+    )
+    parser.add_argument(
+        "--dump_tensor_debug_mode",
+        type=str,
+        default="FULL_HEALTH"
+    )
+    parser.add_argument(
+        "--dump_circular_buffer_size",
+        type=int,
+        default=-1
+    )
+    return parser.parse_args()
 
 
-def main(args):
+def main(FLAGS):
+    # debugging
+    if FLAGS.debug_mode:
+        tf.debugging.experimental.enable_dump_debug_info(
+            FLAGS.dump_dir,
+            tensor_debug_mode=FLAGS.dump_tensor_debug_mode,
+            circular_buffer_size=FLAGS.dump_circular_buffer_size
+        )
+    tf.debugging.enable_check_numerics()
+
     # load config file
-    with open(os.path.join(os.path.dirname(os.getcwd()), args.config_json), "r") as config_json:
+    with open(os.path.join(os.path.dirname(os.getcwd()), FLAGS.config_json), "r") as config_json:
         config = json.load(config_json)
 
     # set seeds
@@ -50,14 +79,14 @@ def main(args):
 
     # run model
     model = Model(config)
-    if args.phase == "train":
+    if FLAGS.phase == "train":
         model.train()
-    elif args.phase == "test":
+    elif FLAGS.phase == "test":
         model.test()
     else:
         sys.exit("Invalid training phase.")
 
 
 if __name__ == '__main__':
-    args = get_parser()
-    main(args)
+    FLAGS = get_parser()
+    main(FLAGS)

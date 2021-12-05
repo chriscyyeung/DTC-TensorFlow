@@ -6,5 +6,5 @@ nibabel
 numpy
 medpy
 scikit-image
-tensorflow==2.5.0
+tensorflow
 tensorflow-addons

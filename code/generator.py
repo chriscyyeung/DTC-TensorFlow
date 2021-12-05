@@ -89,6 +89,7 @@ class DataGenerator(tf.keras.utils.Sequence):
     def __getitem__(self, index):
         # generate one batch
         indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+        print(indexes)
         image_dir_temp = [self.image_dir_list[idx] for idx in indexes]
 
         # create emtpy arrays for all images in batch
@@ -129,9 +130,8 @@ class RandomCrop:
     """Randomly crops the image to the specified output_size. The output
     size can be a tuple or an integer (for a cubic crop).
     """
-    def __init__(self, output_size, seed):
+    def __init__(self, output_size):
         self.name = "RandomCrop"
-        self.seed = seed
 
         assert isinstance(output_size, (int, tuple, list))
         if isinstance(output_size, int):
@@ -143,8 +143,8 @@ class RandomCrop:
     def __call__(self, sample):
         image, label = sample["image"], sample["label"]
 
-        image = tf.image.random_crop(image, self.output_size, self.seed)
-        label = tf.image.random_crop(label, self.output_size, self.seed)
+        image = tf.image.random_crop(image, self.output_size)
+        label = tf.image.random_crop(label, self.output_size)
 
         return {"image": image, "label": label}
 
@@ -166,20 +166,19 @@ class RandomRotation:
 
 class RandomFlip:
     """Randomly flips the image in a sample along its x or y axis."""
-    def __init__(self, seed):
+    def __init__(self):
         self.name = "RandomFlip"
-        self.seed = seed
 
     def __call__(self, sample):
         image, label = sample["image"], sample["label"]
 
         axis = np.random.randint(2)
         if axis:  # flip along y axis
-            image = tf.image.random_flip_left_right(image, self.seed)
-            label = tf.image.random_flip_left_right(label, self.seed)
+            image = tf.image.random_flip_left_right(image)
+            label = tf.image.random_flip_left_right(label)
         else:  # flip along x axis
-            image = tf.image.random_flip_up_down(image, self.seed)
-            label = tf.image.random_flip_up_down(label, self.seed)
+            image = tf.image.random_flip_up_down(image)
+            label = tf.image.random_flip_up_down(label)
 
         return {"image": image, "label": label}
 
@@ -203,4 +202,21 @@ if __name__ == '__main__':
             train_transforms.append(tfm_class)
 
     dataset = DataGenerator(data_dir, transforms=train_transforms)
-    print(len(dataset.get_sample_indices()) == 8 * 4)
+    image, label = dataset[0]
+    print(image.shape, label.shape)
+
+    print(dataset.indexes)
+    for i in range(len(dataset)):
+        image, label = dataset[i]
+        print(image.shape, label.shape)
+
+    # import nibabel as nib
+    # nib.save(nib.Nifti1Image(image[0, ..., 0].astype(np.float32), np.eye(4)), "test_image_0.nii.gz")
+    # nib.save(nib.Nifti1Image(label[0].astype(np.float32), np.eye(4)), "test_label_0.nii.gz")
+    # nib.save(nib.Nifti1Image(image[1, ..., 0].astype(np.float32), np.eye(4)), "test_image_1.nii.gz")
+    # nib.save(nib.Nifti1Image(label[1].astype(np.float32), np.eye(4)), "test_label_1.nii.gz")
+
+    # from model2 import VNet
+    # network = VNet((112, 112, 80, 1), 0.0001)
+    # out_seg, out_tanh = network(image)
+    # print(out_seg.shape, out_tanh.shape)
