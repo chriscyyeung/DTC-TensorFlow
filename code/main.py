@@ -4,7 +4,7 @@ import json
 import argparse
 import numpy as np
 import tensorflow as tf
-from model2 import Model
+from model import Model
 
 
 def get_parser():
