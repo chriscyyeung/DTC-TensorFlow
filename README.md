@@ -23,3 +23,5 @@ python main.py -p train
 ```
 python main.py -p test
 ```
+
+The hyperparameters can be changed by modifying the values in the configs/config.json file, and data augmentation transformations can be modified in the configs/pipeline.yaml file.
